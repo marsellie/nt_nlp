@@ -4,18 +4,31 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 import pickle
+import sys
 
 
 def save(model: LogisticRegression, tfidf: TfidfVectorizer):
-    pickle.dump(model, open('model.sav', 'wb'))
-    pickle.dump(tfidf, open('tfidf.sav', 'wb'))
+    path = sys.path[0] + '/'
+    pickle.dump(model, open(path + 'model.sav', 'wb'))
+    pickle.dump(tfidf, open(path + 'tfidf.sav', 'wb'))
 
 
 def load() -> Tuple[LogisticRegression, TfidfVectorizer]:
-    return pickle.load(open('model.sav', 'rb')), pickle.load(open('tfidf.sav', 'rb'))
+    try:
+        model, tfidf = pickle.load(open('model.sav', 'rb')), pickle.load(open('tfidf.sav', 'rb'))
+        print("===Найдены обученные модели===")
+        print()
+        return model, tfidf
+    except IOError:
+        print("===Не удалось найти модели, выполняется обучение===")
+        print()
+        model, tfidf = prepare_model()
+        save(model, tfidf)
+        return model, tfidf
 
 
 def prepare_model() -> Tuple[LogisticRegression, TfidfVectorizer]:
@@ -50,11 +63,16 @@ def prepare_model() -> Tuple[LogisticRegression, TfidfVectorizer]:
         return text.strip()
 
     data = [preprocess_text(str(t)) for t in raw_data]
-    x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=2)
+    x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.20, random_state=2)
 
     tfidf = TfidfVectorizer(decode_error='ignore')
     tfidf.fit_transform([str(x) for x in data])
 
-    classifier = LogisticRegression()
+    classifier = LogisticRegression(max_iter=1000)
     classifier.fit(tfidf.transform(x_train), y_train)
+
+    y_predicted = classifier.predict(tfidf.transform(x_test))
+    print(classification_report(y_test, y_predicted, digits=6))
+    print()
+    print("Модель обучена")
     return classifier, tfidf

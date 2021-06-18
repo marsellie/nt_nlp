@@ -8,9 +8,9 @@ app = Flask(__name__)
 @app.route('/', methods=['POST'])
 def index():
     text = request.get_json()['text']
-    res = model.predict(tfidf.transform([text]))
-    print(text, "===", res)
-    return jsonify({"positive": str(res[0])})
+    tonality = model.predict(tfidf.transform([text]))
+    print(text, "===", tonality)
+    return jsonify({"positive": str(tonality[0])})
 
 
 app.run()
